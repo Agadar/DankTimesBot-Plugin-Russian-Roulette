@@ -3,27 +3,39 @@
  */
 export class Revolver {
 
-    private readonly chambers = [false, false, false, false, false, false];
+    private readonly chambers: boolean[];
     private currentChamberIndex = 0;
 
     /**
-     * Spins the barrel, causing it to end up at a random chamber.
+     * Constructor.
+     * @param cylinderSize The number of chambers in the cylinder.
      */
-    public spinBarrel(): void {
-        this.currentChamberIndex = Math.floor(Math.random() * 6);
+    constructor(cylinderSize: number) {
+        this.chambers = new Array<boolean>(cylinderSize);
+        for (let i = 0; i < cylinderSize; i++) {
+            this.chambers[i] = false;
+        }
     }
 
     /**
-     * Inserts a bullet into the revolver in the current chamber.
-     * @return True if a bullet was loaded, or false if there was already a bullet in that chamber.
+     * Spins the cylinder, causing it to end up at a random chamber.
+     */
+    public spinCylinder(): void {
+        this.currentChamberIndex = Math.floor(Math.random() * this.chambers.length);
+    }
+
+    /**
+     * Inserts a bullet into the revolver's cylinder in the next available chamber.
+     * @return True if a bullet was loaded, or false if there were no more empty chambers.
      */
     public insertBullet(): boolean {
-        if (!this.chambers[this.currentChamberIndex]) {
-            this.chambers[this.currentChamberIndex] = true;
-            return true;
-        } else {
-            return false;
+        for (let i = 0; i < this.chambers.length; i++) {
+            if (!this.chambers[i]) {
+                this.chambers[i] = true;
+                return true;
+            }
         }
+        return false;
     }
 
     /**
@@ -43,11 +55,31 @@ export class Revolver {
     }
 
     /**
-     * Empties all bullets from the barrel.
+     * Empties all bullets from the cylinder.
      */
-    public emptyBarrel(): void {
+    public emptyCylinder(): void {
         for (let i = 0; i < this.chambers.length; i++) {
             this.chambers[i] = false;
         }
+    }
+
+    /**
+     * The number of bullets in the cylinder.
+     */
+    public get bulletsInCylinder(): number {
+        let count = 0;
+        for (const chamber of this.chambers) {
+            if (chamber) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * The number of chambers in the cylinder.
+     */
+    public get chambersInCylinder(): number {
+        return this.chambers.length;
     }
 }
