@@ -87,8 +87,9 @@ export class Plugin extends AbstractPlugin {
   private handleEmptyCylinder(chat: Chat, user: User, msg: any, match: string[]): string {
     if (!this.userMayInteractWithRevolver(user)) { return; }
     const revolver = this.getOrCreateRevolver(chat.id);
+    const bulletsInCylinder = revolver.bulletsInCylinder;
     revolver.emptyCylinder();
-    return "You empty the cylinder of all bullets.";
+    return `You empty the cylinder. ${bulletsInCylinder} bullets fall to the ground.`;
   }
 
   private handleBulletCount(chat: Chat, user: User, msg: any, match: string[]): string {

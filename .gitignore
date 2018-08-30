@@ -1,13 +1,6 @@
 # built folder
 built/
 
-# Old files
-data/settings.json
-
-# Files that are specific per installation, and thus need to be ignored.
-data/backup.json
-data/config.json
-
 # Logs
 logs
 *.log
