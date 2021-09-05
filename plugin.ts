@@ -1,9 +1,7 @@
 import { BotCommand } from "../../src/bot-commands/bot-command";
+import { AlterUserScoreArgs } from "../../src/chat/alter-user-score-args";
 import { Chat } from "../../src/chat/chat";
 import { User } from "../../src/chat/user/user";
-import {
-  ChatMessagePluginEventArguments,
-} from "../../src/plugin-host/plugin-events/event-arguments/chat-message-plugin-event-arguments";
 import { AbstractPlugin } from "../../src/plugin-host/plugin/plugin";
 import { Revolver } from "./revolver";
 
@@ -18,10 +16,13 @@ export class Plugin extends AbstractPlugin {
 
   private static readonly DEFAULT_CYLINDER_SIZE = 6;
 
+  private static readonly BULLET_IN_CYLINDER_REASON = "bullet.in.cylinder";
+  private static readonly NO_BULLET_IN_CYLINDER_REASON = "no.bullet.in.cylinder";
+
   private readonly revolvers = new Map<number, Revolver>();
 
   constructor() {
-    super("Russian Roulette", "1.0.0");
+    super("Russian Roulette", "1.1.0");
   }
 
   /**
@@ -49,7 +50,6 @@ export class Plugin extends AbstractPlugin {
   }
 
   private handleInsertBullet(chat: Chat, user: User, msg: any, match: string[]): string {
-    if (!this.userMayInteractWithRevolver(user)) { return; }
     const revolver = this.getOrCreateRevolver(chat.id);
     const insertedBullet = revolver.insertBullet();
     if (insertedBullet) {
@@ -60,32 +60,39 @@ export class Plugin extends AbstractPlugin {
   }
 
   private handleSpinCylinder(chat: Chat, user: User, msg: any, match: string[]): string {
-    if (!this.userMayInteractWithRevolver(user)) { return; }
     const revolver = this.getOrCreateRevolver(chat.id);
     revolver.spinCylinder();
     return "You wildly spin the cylinder. It slowly comes to a halt with a click.";
   }
 
   private handlePullTrigger(chat: Chat, user: User, msg: any, match: string[]): string {
-    if (!this.userMayInteractWithRevolver(user)) { return; }
+    if (!this.userMayInteractWithRevolver(user)) {
+      return "😕 You don't have any points to bet. Go kill yourself in some other way," +
+        " you depressed fuck.";
+    }
     const revolver = this.getOrCreateRevolver(chat.id);
+
+    if (revolver.bulletsInCylinder < 1) {
+      return "🤷 The gun ain't loaded, champ. What's the point?";
+    }
     const potentialAward = this.calculatePotentialAward(user, revolver);
     const bulletFired = revolver.pullTrigger();
 
     if (bulletFired) {
-      user.addToScore(-user.score);
+      const alterScoreArgs = new AlterUserScoreArgs(user, -user.score, this.name, Plugin.BULLET_IN_CYLINDER_REASON);
+      const scoreLost = chat.alterUserScore(alterScoreArgs);
       return "You slowly pull the trigger. Suddenly, the hammer comes down. A loud bang follows,"
         + " and the bullet shreds through your skull and brain, sending bloody pieces of bone and sludge everywhere"
-        + ".\n\n💀 You have lost all of your points.";
+        + `.\n\n💀 You have lost ${-scoreLost} points.`;
     } else {
-      user.addToScore(potentialAward);
+      const alterScoreArgs = new AlterUserScoreArgs(user, potentialAward, this.name, Plugin.NO_BULLET_IN_CYLINDER_REASON);
+      const scoreWon = chat.alterUserScore(alterScoreArgs);
       return "You slowly pull the trigger. Suddenly, the hammer comes down. Only a click follows.\n\n"
-        + `😓 There was no bullet in the chamber. You've earned ${potentialAward} points and live to play another day.`;
+        + `😓 There was no bullet in the chamber. You've earned ${scoreWon} points and live to play another day.`;
     }
   }
 
   private handleEmptyCylinder(chat: Chat, user: User, msg: any, match: string[]): string {
-    if (!this.userMayInteractWithRevolver(user)) { return; }
     const revolver = this.getOrCreateRevolver(chat.id);
     const bulletsInCylinder = revolver.bulletsInCylinder;
     revolver.emptyCylinder();
@@ -93,7 +100,6 @@ export class Plugin extends AbstractPlugin {
   }
 
   private handleBulletCount(chat: Chat, user: User, msg: any, match: string[]): string {
-    if (!this.userMayInteractWithRevolver(user)) { return; }
     const revolver = this.getOrCreateRevolver(chat.id);
     const bulletCount = revolver.bulletsInCylinder;
     return `There are currently ${bulletCount} bullets in the cylinder.`;
@@ -113,7 +119,7 @@ export class Plugin extends AbstractPlugin {
   private calculatePotentialAward(user: User, revolver: Revolver): number {
     if (revolver.bulletsInCylinder < 1) { return 0; }
     const scoreMultiplier = this.getScoreMultiplier(revolver);
-    return Math.round(user.score * scoreMultiplier);
+    return Math.max(Math.round(user.score * scoreMultiplier), 1);
   }
 
   private getScoreMultiplier(revolver: Revolver): number {
