@@ -106,10 +106,12 @@ export class Plugin extends AbstractPlugin {
   }
 
   private getOrCreateRevolver(chatId: number): Revolver {
-    if (!this.revolvers.has(chatId)) {
-      this.revolvers.set(chatId, new Revolver(Plugin.DEFAULT_CYLINDER_SIZE));
+    let revolver = this.revolvers.get(chatId);
+    if (!revolver) {
+      revolver = new Revolver(Plugin.DEFAULT_CYLINDER_SIZE);
+      this.revolvers.set(chatId, revolver);
     }
-    return this.revolvers.get(chatId);
+    return revolver;
   }
 
   private userMayInteractWithRevolver(user: User): boolean {
