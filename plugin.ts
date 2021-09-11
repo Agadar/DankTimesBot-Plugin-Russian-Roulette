@@ -29,13 +29,13 @@ export class Plugin extends AbstractPlugin {
    * @override
    */
   public getPluginSpecificCommands(): BotCommand[] {
-    const infoCmd = new BotCommand(Plugin.INFO_CMD, "prints info about the Russian Roulette plugin",
+    const infoCmd = new BotCommand([Plugin.INFO_CMD], "prints info about the Russian Roulette plugin",
       this.russianRouletteInfo.bind(this));
-    const insertBulletCmd = new BotCommand(Plugin.INSERT_BULLET_CMD, "", this.handleInsertBullet.bind(this), false);
-    const spinCylinderCmd = new BotCommand(Plugin.SPIN_CYLINDER_CMD, "", this.handleSpinCylinder.bind(this), false);
-    const pullTriggerCmd = new BotCommand(Plugin.PULL_TRIGGER_CMD, "", this.handlePullTrigger.bind(this), false);
-    const emptyCylinderCmd = new BotCommand(Plugin.EMPTY_CYLINDER_CMD, "", this.handleEmptyCylinder.bind(this), false);
-    const bulletCountCmd = new BotCommand(Plugin.BULLETCOUNT_CMD, "", this.handleBulletCount.bind(this), false);
+    const insertBulletCmd = new BotCommand([Plugin.INSERT_BULLET_CMD], "", this.handleInsertBullet.bind(this), false);
+    const spinCylinderCmd = new BotCommand([Plugin.SPIN_CYLINDER_CMD], "", this.handleSpinCylinder.bind(this), false);
+    const pullTriggerCmd = new BotCommand([Plugin.PULL_TRIGGER_CMD], "", this.handlePullTrigger.bind(this), false);
+    const emptyCylinderCmd = new BotCommand([Plugin.EMPTY_CYLINDER_CMD], "", this.handleEmptyCylinder.bind(this), false);
+    const bulletCountCmd = new BotCommand([Plugin.BULLETCOUNT_CMD], "", this.handleBulletCount.bind(this), false);
     return [infoCmd, insertBulletCmd, spinCylinderCmd, pullTriggerCmd, emptyCylinderCmd, bulletCountCmd];
   }
 
