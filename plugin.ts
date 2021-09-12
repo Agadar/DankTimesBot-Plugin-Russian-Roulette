@@ -1,3 +1,4 @@
+import TelegramBot from "node-telegram-bot-api";
 import { BotCommand } from "../../src/bot-commands/bot-command";
 import { AlterUserScoreArgs } from "../../src/chat/alter-user-score-args";
 import { Chat } from "../../src/chat/chat";
@@ -39,7 +40,7 @@ export class Plugin extends AbstractPlugin {
     return [infoCmd, insertBulletCmd, spinCylinderCmd, pullTriggerCmd, emptyCylinderCmd, bulletCountCmd];
   }
 
-  private russianRouletteInfo(chat: Chat, user: User, msg: any, match: string[]): string {
+  private russianRouletteInfo(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     return "🔫 There are only two rules: if you blow your brains out, you lose ALL your points."
       + " If you survive, you earn points. Good luck.\n\n"
       + `/${Plugin.INSERT_BULLET_CMD} to insert a bullet into the cylinder\n`
@@ -49,7 +50,7 @@ export class Plugin extends AbstractPlugin {
       + `/${Plugin.BULLETCOUNT_CMD} to count the number of bullets in the cylinder`;
   }
 
-  private handleInsertBullet(chat: Chat, user: User, msg: any, match: string[]): string {
+  private handleInsertBullet(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     const revolver = this.getOrCreateRevolver(chat.id);
     const insertedBullet = revolver.insertBullet();
     if (insertedBullet) {
@@ -59,13 +60,13 @@ export class Plugin extends AbstractPlugin {
     }
   }
 
-  private handleSpinCylinder(chat: Chat, user: User, msg: any, match: string[]): string {
+  private handleSpinCylinder(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     const revolver = this.getOrCreateRevolver(chat.id);
     revolver.spinCylinder();
     return "You wildly spin the cylinder. It slowly comes to a halt with a click.";
   }
 
-  private handlePullTrigger(chat: Chat, user: User, msg: any, match: string[]): string {
+  private handlePullTrigger(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     if (!this.userMayInteractWithRevolver(user)) {
       return "😕 You don't have any points to bet. Go kill yourself in some other way," +
         " you depressed fuck.";
@@ -92,14 +93,14 @@ export class Plugin extends AbstractPlugin {
     }
   }
 
-  private handleEmptyCylinder(chat: Chat, user: User, msg: any, match: string[]): string {
+  private handleEmptyCylinder(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     const revolver = this.getOrCreateRevolver(chat.id);
     const bulletsInCylinder = revolver.bulletsInCylinder;
     revolver.emptyCylinder();
     return `You empty the cylinder. ${bulletsInCylinder} bullets fall to the ground.`;
   }
 
-  private handleBulletCount(chat: Chat, user: User, msg: any, match: string[]): string {
+  private handleBulletCount(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
     const revolver = this.getOrCreateRevolver(chat.id);
     const bulletCount = revolver.bulletsInCylinder;
     return `There are currently ${bulletCount} bullets in the cylinder.`;
