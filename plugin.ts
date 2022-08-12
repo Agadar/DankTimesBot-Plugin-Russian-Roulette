@@ -4,6 +4,7 @@ import { AlterUserScoreArgs } from "../../src/chat/alter-user-score-args";
 import { Chat } from "../../src/chat/chat";
 import { User } from "../../src/chat/user/user";
 import { AbstractPlugin } from "../../src/plugin-host/plugin/plugin";
+import { Player } from "./player";
 import { Revolver } from "./revolver";
 
 export class Plugin extends AbstractPlugin {
@@ -21,6 +22,7 @@ export class Plugin extends AbstractPlugin {
     private static readonly NO_BULLET_IN_CYLINDER_REASON = "no.bullet.in.cylinder";
 
     private readonly revolvers = new Map<number, Revolver>();
+    private readonly players = new Map<number, Player[]>();
 
     constructor() {
         super("Russian Roulette", "1.1.0");
@@ -51,6 +53,7 @@ export class Plugin extends AbstractPlugin {
     }
 
     private handleInsertBullet(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+        this.resetMultipliers(chat.id);
         const revolver = this.getOrCreateRevolver(chat.id);
         const insertedBullet = revolver.insertBullet();
         if (insertedBullet) {
@@ -61,6 +64,7 @@ export class Plugin extends AbstractPlugin {
     }
 
     private handleSpinCylinder(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+        this.resetMultipliers(chat.id);
         const revolver = this.getOrCreateRevolver(chat.id);
         revolver.spinCylinder();
         return "You wildly spin the cylinder. It slowly comes to a halt with a click.";
@@ -80,20 +84,24 @@ export class Plugin extends AbstractPlugin {
         const bulletFired = revolver.pullTrigger();
 
         if (bulletFired) {
+            this.resetMultipliers(chat.id);
             const alterScoreArgs = new AlterUserScoreArgs(user, -user.score, this.name, Plugin.BULLET_IN_CYLINDER_REASON);
             const scoreLost = chat.alterUserScore(alterScoreArgs);
             return "You slowly pull the trigger. Suddenly, the hammer comes down. A loud bang follows,"
         + " and the bullet shreds through your skull and brain, sending bloody pieces of bone and sludge everywhere"
         + `.\n\n💀 You have lost ${-scoreLost} points.`;
         } else {
-            const alterScoreArgs = new AlterUserScoreArgs(user, potentialAward, this.name, Plugin.NO_BULLET_IN_CYLINDER_REASON);
+            const consecutiveSpinMultiplier = this.getConsecutiveSpinMultiplier(chat.id, user.id);
+            const alterScoreArgs = new AlterUserScoreArgs(user, Math.round(potentialAward * consecutiveSpinMultiplier), this.name, Plugin.NO_BULLET_IN_CYLINDER_REASON);
             const scoreWon = chat.alterUserScore(alterScoreArgs);
             return "You slowly pull the trigger. Suddenly, the hammer comes down. Only a click follows.\n\n"
-        + `😓 There was no bullet in the chamber. You've earned ${scoreWon} points and live to play another day.`;
+        + `😓 There was no bullet in the chamber. You've earned ${scoreWon} points and live to play another day.\n\n`
+        + `Consecutive spin multiplier: ${consecutiveSpinMultiplier}x`;
         }
     }
 
     private handleEmptyCylinder(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
+        this.resetMultipliers(chat.id);
         const revolver = this.getOrCreateRevolver(chat.id);
         const bulletsInCylinder = revolver.bulletsInCylinder;
         revolver.emptyCylinder();
@@ -129,5 +137,23 @@ export class Plugin extends AbstractPlugin {
         const oddsOfSurviving = 1 - (revolver.bulletsInCylinder / revolver.chambersInCylinder);
         const scoreMultiplier = (0.95 / oddsOfSurviving) - 1; // Gives house 5% advantage.
         return scoreMultiplier;
+    }
+
+    private getConsecutiveSpinMultiplier(chatId: number, playerId: number): number {
+        let players = this.players.get(chatId);
+        if (!players) {
+            players = [ new Player(playerId) ];
+            this.players.set(chatId, players);
+        }
+        let player = players.find(player => player.id === playerId);
+        if (!player) {
+            player = new Player(playerId);
+            players.push(player);
+        }
+        return player.getConsecutiveSpinMultiplier();
+    }
+
+    private resetMultipliers(chatId: number) {
+        this.players.set(chatId, []);
     }
 }
