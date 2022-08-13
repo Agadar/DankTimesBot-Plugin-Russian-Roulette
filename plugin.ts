@@ -4,7 +4,6 @@ import { AlterUserScoreArgs } from "../../src/chat/alter-user-score-args";
 import { Chat } from "../../src/chat/chat";
 import { User } from "../../src/chat/user/user";
 import { AbstractPlugin } from "../../src/plugin-host/plugin/plugin";
-import { Player } from "./player";
 import { Revolver } from "./revolver";
 
 export class Plugin extends AbstractPlugin {
@@ -17,6 +16,7 @@ export class Plugin extends AbstractPlugin {
     private static readonly BULLETCOUNT_CMD = "bulletcount";
 
     private static readonly DEFAULT_CYLINDER_SIZE = 6;
+    private static readonly CONSECUTIVE_PULL_MULTIPLIER = 0.25;
 
     private static readonly BULLET_IN_CYLINDER_REASON = "bullet.in.cylinder";
     private static readonly NO_BULLET_IN_CYLINDER_REASON = "no.bullet.in.cylinder";
@@ -91,7 +91,7 @@ export class Plugin extends AbstractPlugin {
         + " and the bullet shreds through your skull and brain, sending bloody pieces of bone and sludge everywhere"
         + `.\n\n💀 You have lost ${-scoreLost} points.`;
         } else {
-            const consecutivePullMultiplier = this.getConsecutivePullMultiplier(chat.id, user.id);
+            const consecutivePullMultiplier = this.getConsecutivePullMultiplier(chat.id);
             const alterScoreArgs = new AlterUserScoreArgs(user, Math.round(potentialAward * consecutivePullMultiplier), this.name, Plugin.NO_BULLET_IN_CYLINDER_REASON);
             const scoreWon = chat.alterUserScore(alterScoreArgs);
             return "You slowly pull the trigger. Suddenly, the hammer comes down. Only a click follows.\n\n"
@@ -147,7 +147,7 @@ export class Plugin extends AbstractPlugin {
         } else {
             this.consecutivePullMultipliers.set(chatId, multiplier + 1);
         }
-        return 1 + (0.25 * multiplier);
+        return 1 + (Plugin.CONSECUTIVE_PULL_MULTIPLIER * multiplier);
     }
 
     private resetMultipliers(chatId: number) {
