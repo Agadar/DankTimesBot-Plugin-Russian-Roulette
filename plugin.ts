@@ -22,7 +22,7 @@ export class Plugin extends AbstractPlugin {
     private static readonly NO_BULLET_IN_CYLINDER_REASON = "no.bullet.in.cylinder";
 
     private readonly revolvers = new Map<number, Revolver>();
-    private readonly players = new Map<number, Player[]>();
+    private readonly consecutivePullMultipliers = new Map<number, number>();
 
     constructor() {
         super("Russian Roulette", "1.1.0");
@@ -139,21 +139,18 @@ export class Plugin extends AbstractPlugin {
         return scoreMultiplier;
     }
 
-    private getConsecutivePullMultiplier(chatId: number, playerId: number): number {
-        let players = this.players.get(chatId);
-        if (!players) {
-            players = [ new Player(playerId) ];
-            this.players.set(chatId, players);
+    private getConsecutivePullMultiplier(chatId: number): number {
+        let multiplier = this.consecutivePullMultipliers.get(chatId);
+        if (!multiplier && multiplier !== 0) {
+            multiplier = 0;
+            this.consecutivePullMultipliers.set(chatId, multiplier);
+        } else {
+            this.consecutivePullMultipliers.set(chatId, multiplier + 1);
         }
-        let player = players.find(player => player.id === playerId);
-        if (!player) {
-            player = new Player(playerId);
-            players.push(player);
-        }
-        return player.getConsecutivePullMultiplier();
+        return 1 + (0.25 * multiplier);
     }
 
     private resetMultipliers(chatId: number) {
-        this.players.set(chatId, []);
+        this.consecutivePullMultipliers.set(chatId, 0);
     }
 }
