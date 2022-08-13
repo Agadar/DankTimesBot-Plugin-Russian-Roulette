@@ -4,10 +4,10 @@ export class Player {
     public constructor(public id: number) { }
 
     public getConsecutivePullMultiplier(): number {
-        const spins = this.consecutivePulls++;
+        const pulls = this.consecutivePulls++;
         if (this.consecutivePulls === 5) {
             this.consecutivePulls = 0;
         }
-        return 1 + (0.5 * spins);
+        return 1 + (0.25 * pulls);
     }
 }
