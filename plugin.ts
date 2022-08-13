@@ -91,12 +91,12 @@ export class Plugin extends AbstractPlugin {
         + " and the bullet shreds through your skull and brain, sending bloody pieces of bone and sludge everywhere"
         + `.\n\n💀 You have lost ${-scoreLost} points.`;
         } else {
-            const consecutiveSpinMultiplier = this.getConsecutiveSpinMultiplier(chat.id, user.id);
-            const alterScoreArgs = new AlterUserScoreArgs(user, Math.round(potentialAward * consecutiveSpinMultiplier), this.name, Plugin.NO_BULLET_IN_CYLINDER_REASON);
+            const consecutivePullMultiplier = this.getConsecutivePullMultiplier(chat.id, user.id);
+            const alterScoreArgs = new AlterUserScoreArgs(user, Math.round(potentialAward * consecutivePullMultiplier), this.name, Plugin.NO_BULLET_IN_CYLINDER_REASON);
             const scoreWon = chat.alterUserScore(alterScoreArgs);
             return "You slowly pull the trigger. Suddenly, the hammer comes down. Only a click follows.\n\n"
         + `😓 There was no bullet in the chamber. You've earned ${scoreWon} points and live to play another day.\n\n`
-        + `Consecutive spin multiplier: ${consecutiveSpinMultiplier}x`;
+        + `Consecutive pull multiplier: ${consecutivePullMultiplier}x`;
         }
     }
 
@@ -139,7 +139,7 @@ export class Plugin extends AbstractPlugin {
         return scoreMultiplier;
     }
 
-    private getConsecutiveSpinMultiplier(chatId: number, playerId: number): number {
+    private getConsecutivePullMultiplier(chatId: number, playerId: number): number {
         let players = this.players.get(chatId);
         if (!players) {
             players = [ new Player(playerId) ];
@@ -150,7 +150,7 @@ export class Plugin extends AbstractPlugin {
             player = new Player(playerId);
             players.push(player);
         }
-        return player.getConsecutiveSpinMultiplier();
+        return player.getConsecutivePullMultiplier();
     }
 
     private resetMultipliers(chatId: number) {
