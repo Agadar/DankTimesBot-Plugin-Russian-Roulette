@@ -25,7 +25,7 @@ export class Plugin extends AbstractPlugin {
     private readonly consecutivePullMultipliers = new Map<number, number>();
 
     constructor() {
-        super("Russian Roulette", "1.1.0");
+        super("Russian Roulette", "1.1.1");
     }
 
     /**

@@ -29,11 +29,13 @@ export class Revolver {
      * @return True if a bullet was loaded, or false if there were no more empty chambers.
      */
     public insertBullet(): boolean {
-        for (let i = 0; i < this.chambers.length; i++) {
-            if (!this.chambers[i]) {
-                this.chambers[i] = true;
-                return true;
-            }
+        // Find all available open positions, then insert the bullet into a random position.
+        // This fixes an exploit where players could predict where a bullet gets inserted and thus generate lots of cash.
+        const openPositions = this.chambers.flatMap((c, i) => !c ? i : []);
+        if(openPositions.length > 0) {
+            const randomChamberIndex = openPositions[Math.floor(Math.random() * openPositions.length)];
+            this.chambers[randomChamberIndex] = true;
+            return true;
         }
         return false;
     }
