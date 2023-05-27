@@ -92,7 +92,8 @@ export class Plugin extends AbstractPlugin {
         + `.\n\n💀 You have lost ${-scoreLost} points.`;
         } else {
             const consecutivePullMultiplier = this.getConsecutivePullMultiplier(chat.id);
-            const alterScoreArgs = new AlterUserScoreArgs(user, Math.round(potentialAward * consecutivePullMultiplier), this.name, Plugin.NO_BULLET_IN_CYLINDER_REASON);
+            const alterScoreArgs = new AlterUserScoreArgs(user,
+                Math.round(potentialAward * consecutivePullMultiplier), this.name, Plugin.NO_BULLET_IN_CYLINDER_REASON);
             const scoreWon = chat.alterUserScore(alterScoreArgs);
             return "You slowly pull the trigger. Suddenly, the hammer comes down. Only a click follows.\n\n"
         + `😓 There was no bullet in the chamber. You've earned ${scoreWon} points and live to play another day.\n\n`
