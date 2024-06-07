@@ -5,9 +5,11 @@ import { Chat } from "../../src/chat/chat";
 import { User } from "../../src/chat/user/user";
 import { AbstractPlugin } from "../../src/plugin-host/plugin/plugin";
 import { Revolver } from "./revolver";
+import { ChatSettingTemplate } from "../../src/chat/settings/chat-setting-template";
 
 export class Plugin extends AbstractPlugin {
 
+    // Commands
     private static readonly INFO_CMD = "russianroulette";
     private static readonly INSERT_BULLET_CMD = "insertbullet";
     private static readonly SPIN_CYLINDER_CMD = "spincylinder";
@@ -15,9 +17,11 @@ export class Plugin extends AbstractPlugin {
     private static readonly EMPTY_CYLINDER_CMD = "emptycylinder";
     private static readonly BULLETCOUNT_CMD = "bulletcount";
 
+    // Misc. values
     private static readonly DEFAULT_CYLINDER_SIZE = 6;
-    private static readonly CONSECUTIVE_PULL_MULTIPLIER = 0.25;
+    private static readonly CONSECUTIVE_PULL_MULTIPLIER_CONFIG = "russian.roulette.consecutive.multiplier";
 
+    // Events
     private static readonly BULLET_IN_CYLINDER_REASON = "bullet.in.cylinder";
     private static readonly NO_BULLET_IN_CYLINDER_REASON = "no.bullet.in.cylinder";
 
@@ -25,12 +29,12 @@ export class Plugin extends AbstractPlugin {
     private readonly consecutivePullMultipliers = new Map<number, number>();
 
     constructor() {
-        super("Russian Roulette", "1.1.1");
+        super("Russian Roulette", "1.2.0");
     }
 
     /**
-   * @override
-   */
+     * @override
+     */
     public getPluginSpecificCommands(): BotCommand[] {
         const infoCmd = new BotCommand([Plugin.INFO_CMD], "prints info about the Russian Roulette plugin",
             this.russianRouletteInfo.bind(this));
@@ -42,14 +46,23 @@ export class Plugin extends AbstractPlugin {
         return [infoCmd, insertBulletCmd, spinCylinderCmd, pullTriggerCmd, emptyCylinderCmd, bulletCountCmd];
     }
 
+    /**
+     * @override
+     */
+    public getPluginSpecificChatSettings(): Array<ChatSettingTemplate<any>> {
+        return [
+            new ChatSettingTemplate(Plugin.CONSECUTIVE_PULL_MULTIPLIER_CONFIG, "consecutive pull multiplier bonus", 0, (original) => Number(original), (value) => null)
+        ];
+    }
+
     private russianRouletteInfo(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
         return "🔫 There are only two rules: if you blow your brains out, you lose ALL your points."
-      + " If you survive, you earn points. Good luck.\n\n"
-      + `/${Plugin.INSERT_BULLET_CMD} to insert a bullet into the cylinder\n`
-      + `/${Plugin.SPIN_CYLINDER_CMD} to spin the cylinder\n`
-      + `/${Plugin.PULL_TRIGGER_CMD} to put the revolver to your head and pull the trigger\n`
-      + `/${Plugin.EMPTY_CYLINDER_CMD} to empty the cylinder\n`
-      + `/${Plugin.BULLETCOUNT_CMD} to count the number of bullets in the cylinder`;
+            + " If you survive, you earn points. Good luck.\n\n"
+            + `/${Plugin.INSERT_BULLET_CMD} to insert a bullet into the cylinder\n`
+            + `/${Plugin.SPIN_CYLINDER_CMD} to spin the cylinder\n`
+            + `/${Plugin.PULL_TRIGGER_CMD} to put the revolver to your head and pull the trigger\n`
+            + `/${Plugin.EMPTY_CYLINDER_CMD} to empty the cylinder\n`
+            + `/${Plugin.BULLETCOUNT_CMD} to count the number of bullets in the cylinder`;
     }
 
     private handleInsertBullet(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
@@ -73,7 +86,7 @@ export class Plugin extends AbstractPlugin {
     private handlePullTrigger(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
         if (!this.userMayInteractWithRevolver(user)) {
             return "😕 You don't have any points to bet. Go kill yourself in some other way," +
-        " you depressed fuck.";
+                " you depressed fuck.";
         }
         const revolver = this.getOrCreateRevolver(chat.id);
 
@@ -88,16 +101,20 @@ export class Plugin extends AbstractPlugin {
             const alterScoreArgs = new AlterUserScoreArgs(user, -user.score, this.name, Plugin.BULLET_IN_CYLINDER_REASON);
             const scoreLost = chat.alterUserScore(alterScoreArgs);
             return "You slowly pull the trigger. Suddenly, the hammer comes down. A loud bang follows,"
-        + " and the bullet shreds through your skull and brain, sending bloody pieces of bone and sludge everywhere"
-        + `.\n\n💀 You have lost ${-scoreLost} points.`;
+                + " and the bullet shreds through your skull and brain, sending bloody pieces of bone and sludge everywhere"
+                + `.\n\n💀 You have lost ${-scoreLost} points.`;
         } else {
-            const consecutivePullMultiplier = this.getConsecutivePullMultiplier(chat.id);
+            const consecutivePullMultiplier = this.getConsecutivePullMultiplier(chat);
             const alterScoreArgs = new AlterUserScoreArgs(user,
                 Math.round(potentialAward * consecutivePullMultiplier), this.name, Plugin.NO_BULLET_IN_CYLINDER_REASON);
             const scoreWon = chat.alterUserScore(alterScoreArgs);
-            return "You slowly pull the trigger. Suddenly, the hammer comes down. Only a click follows.\n\n"
-        + `😓 There was no bullet in the chamber. You've earned ${scoreWon} points and live to play another day.\n\n`
-        + `Consecutive pull multiplier: ${consecutivePullMultiplier}x`;
+            let msg = "You slowly pull the trigger. Suddenly, the hammer comes down. Only a click follows.\n\n"
+                + `😓 There was no bullet in the chamber. You've earned ${scoreWon} points and live to play another day.`;
+                
+            if (consecutivePullMultiplier !== 1) {
+                msg += `\n\nConsecutive pull multiplier: ${consecutivePullMultiplier}x`;
+            }
+            return msg;
         }
     }
 
@@ -140,15 +157,15 @@ export class Plugin extends AbstractPlugin {
         return scoreMultiplier;
     }
 
-    private getConsecutivePullMultiplier(chatId: number): number {
-        let multiplier = this.consecutivePullMultipliers.get(chatId);
+    private getConsecutivePullMultiplier(chat: Chat): number {
+        let multiplier = this.consecutivePullMultipliers.get(chat.id);
         if (!multiplier && multiplier !== 0) {
             multiplier = 0;
-            this.consecutivePullMultipliers.set(chatId, multiplier);
+            this.consecutivePullMultipliers.set(chat.id, multiplier);
         } else {
-            this.consecutivePullMultipliers.set(chatId, multiplier + 1);
+            this.consecutivePullMultipliers.set(chat.id, multiplier + 1);
         }
-        return 1 + (Plugin.CONSECUTIVE_PULL_MULTIPLIER * multiplier);
+        return 1 + (chat.getSetting<number>(Plugin.CONSECUTIVE_PULL_MULTIPLIER_CONFIG) * multiplier);
     }
 
     private resetMultipliers(chatId: number) {
