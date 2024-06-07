@@ -129,6 +129,10 @@ export class Plugin extends AbstractPlugin {
     private handleBulletCount(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
         const revolver = this.getOrCreateRevolver(chat.id);
         const bulletCount = revolver.bulletsInCylinder;
+
+        if (bulletCount === 1) {
+            return "There is currently 1 bullet in the cylinder.";
+        }
         return `There are currently ${bulletCount} bullets in the cylinder.`;
     }
 
