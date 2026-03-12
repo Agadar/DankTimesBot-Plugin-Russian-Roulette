@@ -6,6 +6,8 @@ import { User } from "../../src/chat/user/user";
 import { AbstractPlugin } from "../../src/plugin-host/plugin/plugin";
 import { Revolver } from "./revolver";
 import { ChatSettingTemplate } from "../../src/chat/settings/chat-setting-template";
+import { PrePullTriggerEventData } from "./pre-pull-trigger-event-data";
+import { PostPullTriggerEventData } from "./post-pull-trigger-event-data";
 
 export class Plugin extends AbstractPlugin {
 
@@ -22,14 +24,16 @@ export class Plugin extends AbstractPlugin {
     private static readonly CONSECUTIVE_PULL_MULTIPLIER_CONFIG = "russian.roulette.consecutive.multiplier";
 
     // Events
-    private static readonly BULLET_IN_CYLINDER_REASON = "bullet.in.cylinder";
-    private static readonly NO_BULLET_IN_CYLINDER_REASON = "no.bullet.in.cylinder";
+    private static readonly BULLET_IN_CYLINDER_REASON = "bullet.in.cylinder";                   // For alter user score
+    private static readonly NO_BULLET_IN_CYLINDER_REASON = "no.bullet.in.cylinder";             // For alter user score
+    private static readonly PRE_PULL_TRIGGER_REASON = "russian-roulette.pre-pull-trigger";      // Fired right before the trigger is pulled
+    private static readonly POST_PULL_TRIGGER_REASON = "russian-roulette.post-pull-trigger";    // Fired right after the trigger is pulled
 
     private readonly revolvers = new Map<number, Revolver>();
     private readonly consecutivePullMultipliers = new Map<number, number>();
 
     constructor() {
-        super("Russian Roulette", "1.2.0");
+        super("Russian Roulette", "1.3.0");
     }
 
     /**
@@ -84,7 +88,13 @@ export class Plugin extends AbstractPlugin {
     }
 
     private handlePullTrigger(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
-        if (!this.userMayInteractWithRevolver(user)) {
+        const preEventData: PrePullTriggerEventData = { chat, user, allowTriggerPull: true };
+        this.fireCustomEvent(Plugin.PRE_PULL_TRIGGER_REASON, preEventData);
+
+        if (!preEventData.allowTriggerPull) {
+            return "🙅‍♂️ You can't shoot yourself right now.";
+        }
+        if (user.score <= 0) {
             return "😕 You don't have any points to bet. Go kill yourself in some other way," +
                 " you depressed fuck.";
         }
@@ -95,6 +105,8 @@ export class Plugin extends AbstractPlugin {
         }
         const potentialAward = this.calculatePotentialAward(user, revolver);
         const bulletFired = revolver.pullTrigger();
+        const postEventData: PostPullTriggerEventData = { chat, user, playerDied: bulletFired };
+        this.fireCustomEvent(Plugin.POST_PULL_TRIGGER_REASON, postEventData);
 
         if (bulletFired) {
             this.resetMultipliers(chat.id);
@@ -110,7 +122,7 @@ export class Plugin extends AbstractPlugin {
             const scoreWon = chat.alterUserScore(alterScoreArgs);
             let msg = "You slowly pull the trigger. Suddenly, the hammer comes down. Only a click follows.\n\n"
                 + `😓 There was no bullet in the chamber. You've earned ${scoreWon} points and live to play another day.`;
-                
+
             if (consecutivePullMultiplier !== 1) {
                 msg += `\n\nConsecutive pull multiplier: ${consecutivePullMultiplier}x`;
             }
@@ -143,10 +155,6 @@ export class Plugin extends AbstractPlugin {
             this.revolvers.set(chatId, revolver);
         }
         return revolver;
-    }
-
-    private userMayInteractWithRevolver(user: User): boolean {
-        return user.score > 0;
     }
 
     private calculatePotentialAward(user: User, revolver: Revolver): number {
