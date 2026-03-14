@@ -13,8 +13,13 @@ export interface PrePullTriggerEventData {
      * The user that is about to pull the trigger.
      */
     readonly user: User;
+
     /**
      * Allows listening plugins to disallow the user from pulling the trigger.
      */
     allowTriggerPull: boolean;
+    /**
+     * Allows listening plugins to explain why the user may not pull the trigger, if applicable.
+     */
+    whyNotExplanation: string;
 }

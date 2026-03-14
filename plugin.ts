@@ -88,11 +88,11 @@ export class Plugin extends AbstractPlugin {
     }
 
     private handlePullTrigger(chat: Chat, user: User, msg: TelegramBot.Message, match: string): string {
-        const preEventData: PrePullTriggerEventData = { chat, user, allowTriggerPull: true };
+        const preEventData: PrePullTriggerEventData = { chat, user, allowTriggerPull: true, whyNotExplanation: "" };
         this.fireCustomEvent(Plugin.PRE_PULL_TRIGGER_REASON, preEventData);
 
         if (!preEventData.allowTriggerPull) {
-            return "🙅‍♂️ You can't shoot yourself right now.";
+            return preEventData.whyNotExplanation ? preEventData.whyNotExplanation : "🙅‍♂️ You can't shoot yourself right now.";
         }
         if (user.score <= 0) {
             return "😕 You don't have any points to bet. Go kill yourself in some other way," +
